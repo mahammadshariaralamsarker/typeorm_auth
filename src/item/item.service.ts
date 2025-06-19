@@ -1,4 +1,4 @@
-import { BadRequestException, FileValidator, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, FileValidator, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -37,7 +37,7 @@ export class ItemService {
           public: createItemDto.public,
           listing: listing,
           comments: commentEntities,
-        }); 
+        });
         const savedItem = await manager.save(Item, item);
 
         return {
@@ -71,33 +71,45 @@ export class ItemService {
 
   async update(id: string, updateItemDto: UpdateItemDto) {
     console.log(updateItemDto);
-    const item = await this.itemsRepository.findOneBy({ id })
+    const item = await this.itemsRepository.findOne({
+      where: {
+        id
+      },
+      relations:{
+        listing:true,comments:true, 
+      }
+    })
+    console.log("db item", item);
     if (!item) {
       throw new BadRequestException(`Item with id ${id} not found`);
     }
- 
-    item.name = updateItemDto.name ?? item.name;
-    item.public = updateItemDto.public ?? item.public;
-    if (updateItemDto.listing) {
-    if (!item.listing) {
-      item.listing = this.listingRepository.create(updateItemDto.listing);
-    } else {
-      item.listing.description = updateItemDto.listing.description ?? item.listing.description;
-      item.listing.rating = updateItemDto.listing.rating ?? item.listing.rating;
-    }
-    await this.listingRepository.save(item.listing);
-  }
-  if(updateItemDto.comment){
-     const newComments = updateItemDto.comment.map(c => this.commentRepository.create(c));
-      item.comments = newComments;
-      return await this.itemsRepository.save(item);
-  }
-    const savedItem = await this.itemsRepository.save(item);
 
-    return {
-      message: `This action updates item #${id}`,
-      updatedItem: savedItem,
-    };
+    item.name = updateItemDto.name || item.name;
+    item.public = updateItemDto.public ?? item.public;
+
+    console.log("test", item.listing, updateItemDto.listing);
+    try {
+      if (updateItemDto.listing && item.listing) {
+        if (updateItemDto.listing.description !== undefined) {
+          item.listing.description = updateItemDto.listing.description;
+        }
+        console.log(updateItemDto.listing.rating);
+        if (updateItemDto.listing.rating !== undefined) {
+          console.log(updateItemDto.listing.rating);
+          item.listing.rating = updateItemDto.listing.rating ?? item.listing.rating;
+        }
+        await this.listingRepository.save(item.listing);
+      } 
+
+      return {
+        message: `This action updates item #${id}`,
+        updatedItem: item,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(`Failed to update item #${id}`);
+    }
+
 
   }
 }
