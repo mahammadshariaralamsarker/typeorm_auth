@@ -1,6 +1,35 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateItemDto } from './create-item.dto';
+import { IsOptional, IsString, IsBoolean, ValidateNested, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UpdateItemDto  {
-  public:boolean;
+class UpdateListingDto {
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  rating?: number;
+}
+
+class UpdateCommentDto {
+  @IsOptional()
+  @IsString()
+  content?: string;
+}
+
+export class UpdateItemDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  public?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateListingDto)
+  listing?: UpdateListingDto;
+
+  @IsOptional()
+  comment?: { content: string }[]; 
 }

@@ -4,15 +4,18 @@ import { AbstractEntity } from "src/database/abstrct.entity";
 import { Comment } from "./comment.entity";
 
 @Entity()
-export class Item extends AbstractEntity<Item> { 
+export class Item extends AbstractEntity<Item> {
 
   @Column()
-  name:string
+  name: string
 
-  @Column({default:true})
-  public:boolean 
+  @Column({ default: true })
+  public: boolean
 
-  @OneToOne(()=> Listing, {cascade:true} )
+  @OneToOne(() => Listing, { cascade: true })
   @JoinColumn()
-  listing:Listing
+  listing: Listing
+
+  @OneToMany(() => Comment, comment => comment.item, { cascade: true })
+  comments: Comment[];
 }
